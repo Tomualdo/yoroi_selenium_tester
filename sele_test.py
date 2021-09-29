@@ -60,7 +60,7 @@ class BraveTest(threading.Thread):
         browser.find_element_by_class_name('OptionBlock_bgShelleyMainnet').click()
 
         # table area
-        self.seed, self.entrophy = self.gen_wordlist(160)
+        self.seed, self.entrophy, self.previous_seed = self.gen_wordlist(160)
         wallet_name = browser.find_element_by_id('walletName--2')
         wallet_name.send_keys(str(self.entrophy[:10]))
         recovery_phrase = browser.find_element_by_xpath('/html/body/div[2]/div/div/div/div[2]/div[2]/div[1]/fieldset/div[2]/div/input')
@@ -102,7 +102,7 @@ class BraveTest(threading.Thread):
                 browser.find_element_by_class_name('OptionBlock_bgShelleyMainnet').click()
 
                 # table area
-                self.seed, self.entrophy = self.gen_wordlist(160)
+                self.seed, self.entrophy, self.previous_seed = self.gen_wordlist(160, self.previous_seed+1)
                 wallet_name = browser.find_element_by_id('walletName--1')
                 wallet_name.send_keys(str(self.entrophy[:10]))
                 recovery_phrase = browser.find_element_by_xpath('/html/body/div[2]/div/div/div/div[2]/div[2]/div[1]/fieldset/div[2]/div/input')
@@ -143,10 +143,14 @@ class BraveTest(threading.Thread):
             file1.write(filedata)
             file1.write("\n")
 
-    def gen_wordlist(self, bits):
+    def gen_wordlist(self, bits: int = 160, previous_seed: int = None ):
         """Generuj seed na test bruteforce BIP39"""
         self.bits = bits
-        s = bin(secrets.randbits(self.bits))
+        if not previous_seed:
+            start_seed = secrets.randbits(self.bits)
+        else:
+            start_seed = previous_seed
+        s = bin(start_seed)
         s = s[2:].zfill(self.bits)
         print(f"Binary: {s}")
         h=int(s, 2).to_bytes((len(s) + 7) // 8, byteorder='big')
@@ -167,7 +171,7 @@ class BraveTest(threading.Thread):
             # print(f"{int(s_[i:i+11],2)} = {k.words[int(s_[i:i+11],2)]}")
             seed.append(wordlist[int(s_[i:i+11],2)])
         print(seed)
-        return seed, entrophy
+        return seed, entrophy, start_seed
 
 # a = BraveTest('chrome-extension://ffnbelfdoeiohenkjibnmadjiehjhajb/main_window.html#/my-wallets')
 # a.start()
@@ -179,7 +183,7 @@ class ThreadedTest:
 
         with VirtualDisplay(self.platform):
             try:
-                for i in range(os.cpu_count()):
+                for i in range(os.cpu_count()-1):
                     self.threads.append(BraveTest('chrome-extension://ffnbelfdoeiohenkjibnmadjiehjhajb/main_window.html#/profile/language-selection'))
                     print(f"running {i} thread")
 
