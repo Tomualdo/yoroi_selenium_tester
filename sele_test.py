@@ -1,5 +1,5 @@
 import platform
-if platform.system == 'Linux':
+if platform.system() == 'Linux':
     from pyvirtualdisplay import Display
 from selenium import webdriver
 import time
