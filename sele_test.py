@@ -44,8 +44,9 @@ class BraveTest(threading.Thread):
 
         options = Options()
         options.add_argument
-        options.binary_location = 'C:\Program Files (x86)\BraveSoftware\Brave-Browser\Application\\brave.exe'
+        options.binary_location = r'C:\Users\tkrajcoviech\AppData\Local\BraveSoftware\Brave-Browser\Application\brave.exe'
         options.add_extension('extension_4_7_300_0.crx')
+        options.add_experimental_option('excludeSwitches', ['enable-logging'])
         os.environ['PATH'] += 'chromedriver.exe'
         browser = webdriver.Chrome('chromedriver.exe', options = options)
         browser.get(self.web_page)
