@@ -36,6 +36,7 @@ class VirtualDisplay:
 class BraveTest(threading.Thread):
     def __init__(self, web_page: str):
         self.web_page = web_page
+        self.platform = platform.system()
         threading.Thread.__init__(self)
 
     def run(self):
@@ -45,9 +46,11 @@ class BraveTest(threading.Thread):
         options.add_argument
         options.binary_location = 'C:\Program Files (x86)\BraveSoftware\Brave-Browser\Application\\brave.exe'
         options.add_extension('extension_4_7_300_0.crx')
+        os.environ['PATH'] += 'chromedriver.exe'
         browser = webdriver.Chrome('chromedriver.exe', options = options)
         browser.get(self.web_page)
-        browser.minimize_window()
+        if self.platform == 'Windows':
+            browser.minimize_window()
 
         browser.implicitly_wait(100)
         browser.find_element_by_xpath('/html/body/div/div/div[2]/div/div/div/div/div/div[2]/div/button').click()
@@ -82,9 +85,10 @@ class BraveTest(threading.Thread):
         attr1 = attr1.split('<')
         self.total_ada = float(attr1[0]+attr)
         print(self.total_ada)
-        if self.total_ada != 0:
-            exit()
         self.save_wallet()
+        if self.total_ada != 0:
+            self.save_wallet(found=True)
+            exit()
 
         # remove wallet
         browser.find_element_by_class_name('NavBarBack_backButton').click()
@@ -125,6 +129,9 @@ class BraveTest(threading.Thread):
                 self.total_ada = float(attr1[0]+attr)
                 print(self.total_ada)
                 self.save_wallet()
+                if self.total_ada != 0:
+                    self.save_wallet(found=True)
+                    exit()
                 browser.find_element_by_class_name('NavBarBack_backButton').click()
                 browser.find_element_by_class_name('WalletRow_settingSection').click()
                 browser.find_element_by_class_name('RemoveWallet_submitButton').click()
@@ -135,16 +142,18 @@ class BraveTest(threading.Thread):
 
         browser.quit()
 
-    def save_wallet(self):
+    def save_wallet(self, found=False):
         with open("wallets.txt", "a") as file1:
         # Writing data to a file
             tim = datetime.now().strftime('%d.%m.%y %H:%M:%S')
             filedata = f"{tim} {str(self.total_ada)}ADA {str(self.seed)} {self.entrophy}"
+            if found:
+                filedata += 100*"^"
             file1.write(filedata)
             file1.write("\n")
 
     def gen_wordlist(self, bits: int = 160, previous_seed: int = None ):
-        """Generuj seed na test bruteforce BIP39"""
+        """Generate seed according BIP39"""
         self.bits = bits
         if not previous_seed:
             start_seed = secrets.randbits(self.bits)
