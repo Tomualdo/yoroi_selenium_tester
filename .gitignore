@@ -2,3 +2,4 @@ __pycache__
 .venv
 wallets.txt
 *.pyc
+mail_conf.json
