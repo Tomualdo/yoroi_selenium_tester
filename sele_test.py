@@ -8,6 +8,7 @@ import secrets
 import binascii
 import hashlib
 import threading, os
+from pathlib import Path
 
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
@@ -34,21 +35,24 @@ class VirtualDisplay:
         pass
 
 class BraveTest(threading.Thread):
-    def __init__(self, web_page: str):
+    def __init__(self, web_page: str, binary_location: Path = None):
         self.web_page = web_page
+        self.binary_location = binary_location
         self.platform = platform.system()
         threading.Thread.__init__(self)
 
     def run(self):
         # self.web_page = web_page
+        pwd = os.path.dirname(str(os.path.realpath(__file__)))
 
         options = Options()
         options.add_argument
-        options.binary_location = r'C:\Users\tkrajcoviech\AppData\Local\BraveSoftware\Brave-Browser\Application\brave.exe'
-        options.add_extension('extension_4_7_300_0.crx')
+        if self.binary_location is not None:
+            options.binary_location = self.binary_location
+        options.add_extension(pwd+'\extension_4_7_300_0.crx')
         options.add_experimental_option('excludeSwitches', ['enable-logging'])
-        os.environ['PATH'] += 'chromedriver.exe'
-        browser = webdriver.Chrome('chromedriver.exe', options = options)
+        # os.environ['PATH'] += 'chromedriver.exe'
+        browser = webdriver.Chrome(pwd+'\chromedriver.exe', options = options)
         browser.get(self.web_page)
         if self.platform == 'Windows':
             browser.minimize_window()
@@ -86,6 +90,7 @@ class BraveTest(threading.Thread):
         attr1 = attr1.split('<')
         self.total_ada = float(attr1[0]+attr)
         print(self.total_ada)
+        self.expansion = 1
         self.save_wallet()
         if self.total_ada != 0:
             self.save_wallet(found=True)
@@ -107,7 +112,16 @@ class BraveTest(threading.Thread):
                 browser.find_element_by_class_name('OptionBlock_bgShelleyMainnet').click()
 
                 # table area
-                self.seed, self.entrophy, self.previous_seed = self.gen_wordlist(160, self.previous_seed+1)
+                print(f"previsous seed={str(self.previous_seed)[3:]}")
+                print(f"{self.expansion=}")
+                self.seed, self.entrophy, self.previous_seed = self.gen_wordlist(160, self.previous_seed+self.expansion)
+                # expansion += 1
+                if self.expansion < 0:
+                    self.expansion = abs(self.expansion) +2
+                    self.expansion = -self.expansion
+                self.expansion = -self.expansion-1
+                
+                
                 wallet_name = browser.find_element_by_id('walletName--1')
                 wallet_name.send_keys(str(self.entrophy[:10]))
                 recovery_phrase = browser.find_element_by_xpath('/html/body/div[2]/div/div/div/div[2]/div[2]/div[1]/fieldset/div[2]/div/input')
@@ -147,7 +161,7 @@ class BraveTest(threading.Thread):
         with open("wallets.txt", "a") as file1:
         # Writing data to a file
             tim = datetime.now().strftime('%d.%m.%y %H:%M:%S')
-            filedata = f"{tim} {str(self.total_ada)}ADA {str(self.seed)} {self.entrophy}"
+            filedata = f"{tim} {self.expansion=} {str(self.total_ada)}ADA {str(self.seed)} {self.entrophy}"
             if found:
                 filedata += 100*"^"
             file1.write(filedata)
@@ -162,18 +176,18 @@ class BraveTest(threading.Thread):
             start_seed = previous_seed
         s = bin(start_seed)
         s = s[2:].zfill(self.bits)
-        print(f"Binary: {s}")
+        # print(f"Binary: {s}")
         h=int(s, 2).to_bytes((len(s) + 7) // 8, byteorder='big')
         entrophy = binascii.hexlify(h).decode()
-        print(f"Entrophy: {entrophy}")
+        # print(f"Entrophy: {entrophy}")
         a = binascii.hexlify(hashlib.sha256(h).digest()).decode()
-        print(f"SHA256 of Entrophy: {a}")
+        # print(f"SHA256 of Entrophy: {a}")
         s_ = s
         chsum = int(a[:2],16) # convert string to int and cut desired length
         chsum = bin(chsum)[2:].zfill(8) # convert to bits and fill desired length with zeroes
         chsum = chsum[:self.bits//32] # trim
         s_ += chsum
-        print(f"checksum = {chsum}")
+        # print(f"checksum = {chsum}")
 
         # separate each 11 bits of entrophy to generate coresponding words
         seed = []
