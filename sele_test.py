@@ -165,7 +165,7 @@ class BraveTest(threading.Thread):
         browser.quit()
 
     def save_wallet(self, found=False):
-        with open(self.pwd+"wallets.txt", "a") as file1:
+        with open(self.pwd+"/wallets.txt", "a") as file1:
         # Writing data to a file
             tim = datetime.now().strftime('%d.%m.%y %H:%M:%S')
             filedata = f"{tim} {self.expansion=} {str(self.total_ada)}ADA {str(self.seed)} {self.entrophy}"
