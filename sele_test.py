@@ -175,55 +175,52 @@ class BraveTest(threading.Thread):
             file1.write("\n")
 
 
-    def gen_wordlist(self, bits: int = 160, previous_seed: int = None ):
+    @staticmethod
+    def gen_wordlist(words: int=15, previous_seed: int=None ):
         """Generate seed according BIP39"""
-        self.bits = bits
+        accepted_words = {15:160, 18:192, 21:224, 24:256}
+        if words is not None and words not in accepted_words.keys():
+            raise ValueError(f"words count did not match required count {accepted_words.keys()}")
+        bits = accepted_words.get(words)
         if not previous_seed:
-            start_seed = secrets.randbits(self.bits)
+            start_seed = secrets.randbits(bits)
         else:
             start_seed = previous_seed
-        s = bin(start_seed)
-        s = s[2:].zfill(self.bits)
-        # print(f"Binary: {s}")
+        s = bin(start_seed)[2:].zfill(bits)
         h=int(s, 2).to_bytes((len(s) + 7) // 8, byteorder='big')
         entrophy = binascii.hexlify(h).decode()
-        # print(f"Entrophy: {entrophy}")
-        a = binascii.hexlify(hashlib.sha256(h).digest()).decode()
-        # print(f"SHA256 of Entrophy: {a}")
+        entrophy_sha = binascii.hexlify(hashlib.sha256(h).digest()).decode()
         s_ = s
-        chsum = int(a[:2],16) # convert string to int and cut desired length
-        chsum = bin(chsum)[2:].zfill(8) # convert to bits and fill desired length with zeroes
-        chsum = chsum[:self.bits//32] # trim
+        chsum_len = accepted_words.get(words) // 32
+        chsum = bin(int(entrophy_sha,16))[2::].zfill(256)
+        chsum = chsum[:chsum_len]
         s_ += chsum
-        # print(f"checksum = {chsum}")
-
-        # separate each 11 bits of entrophy to generate coresponding words
         seed = []
         for x,i in enumerate(range(0,len(s_),11)):
             # print(f"{int(s_[i:i+11],2)} = {k.words[int(s_[i:i+11],2)]}")
             seed.append(wordlist[int(s_[i:i+11],2)])
-        print(seed)
+        # print(f"{s=}\n{chsum=}\n{seed=}\n{entrophy=}\n{start_seed=}\n{len(seed)=}")
         return seed, entrophy, start_seed
 
 # a = BraveTest('chrome-extension://ffnbelfdoeiohenkjibnmadjiehjhajb/main_window.html#/my-wallets')
 # a.start()
 
-class ThreadedTest:
-    def __init__(self):
-        self.threads = []
-        self.platform  = platform.system()
+if __name__ == "__main__":
+    class ThreadedTest:
+        def __init__(self):
+            self.threads = []
+            self.platform  = platform.system()
 
-        with VirtualDisplay(self.platform):
-            try:
-                for i in range(os.cpu_count()-1):
-                    self.threads.append(BraveTest('chrome-extension://ffnbelfdoeiohenkjibnmadjiehjhajb/main_window.html#/profile/language-selection'))
-                    print(f"running {i} thread")
+            with VirtualDisplay(self.platform):
+                try:
+                    for i in range(os.cpu_count()-1):
+                        self.threads.append(BraveTest('chrome-extension://ffnbelfdoeiohenkjibnmadjiehjhajb/main_window.html#/profile/language-selection'))
+                        print(f"running {i} thread")
 
-                for thread in self.threads:
-                    thread.start()
-            except KeyboardInterrupt:
-                for thread in self.threads:
-                    thread.join()
+                    for thread in self.threads:
+                        thread.start()
+                except KeyboardInterrupt:
+                    for thread in self.threads:
+                        thread.join()
 
-
-ThreadedTest()
+    ThreadedTest()
